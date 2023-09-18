@@ -11,47 +11,72 @@ type Todo = {
   isDone: boolean;
 };
 
-const fetchTodosFn = async () => {
-  const response = await supabase.from("todo").select("*");
-  return response.data;
+const getAllTodosFn = async () => {
+  const { data, error } = await supabase
+    .from("todo")
+    .select("*")
+    .order("created_at");
+
+  if (error) {
+    throw error;
+  }
+
+  return data?.map((todo) => ({
+    id: todo.id,
+    title: todo.title,
+    isDone: todo.is_done,
+  }));
 };
 
 const createTodoFn = async (title: string) =>
   await supabase.from("todo").insert([{ title }]).select().single();
 
-const toggleTodoFn = async (todoId: TodoId) => {
-  const response = await supabase
+const toggleTodoFn = async (todo: Todo) =>
+  await supabase
     .from("todo")
-    .update({ isDone: true })
-    .match({ id: todoId })
-    .select("*");
-  return response.data;
-};
+    .update({ is_done: !todo.isDone })
+    .eq("id", todo.id);
+
+const deleteTodoFn = async (todoId: TodoId) =>
+  await supabase.from("todo").delete().eq("id", todoId);
 
 export const TodosScreen = () => {
   const {
     data: todos,
     isLoading,
     isError,
-    error,
-  } = useQuery({
-    queryKey: ["todos"],
-    queryFn: fetchTodosFn,
-  });
+  } = useQuery({ queryKey: ["todos"], queryFn: getAllTodosFn });
 
   const createTodo = useMutation({
     mutationFn: createTodoFn,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["todos"] }),
-  });
+  }).mutate;
+
+  const toggleTodo = useMutation({
+    mutationFn: toggleTodoFn,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["todos"] }),
+    onError: (error) => console.error(error),
+  }).mutate;
+
+  const deleteTodo = useMutation({
+    mutationFn: deleteTodoFn,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["todos"] }),
+    onError: (error) => console.error(error),
+  }).mutate;
 
   if (isLoading) return <p>Loading...</p>;
-  if (isError) return <p>Error: {error?.message}</p>;
+
+  if (isError) return <p>Error...</p>;
 
   return (
     <div className="todo-container">
       <TodoCreate onCreate={createTodo} />
 
-      <TodoList todos={todos} onToggleTodo={() => {}} onDeleteTodo={() => {}} />
+      <TodoList
+        todos={todos}
+        onToggleTodo={toggleTodo}
+        onDeleteTodo={deleteTodo}
+      />
     </div>
   );
 };
@@ -60,12 +85,12 @@ type TodoCreateProps = {
   onCreate: (title: string) => void;
 };
 
-const TodoCreate = ({ onCreate }) => {
+const TodoCreate = ({ onCreate }: TodoCreateProps) => {
   const [title, setTitle] = useState("");
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    onCreate.mutate(title);
+    onCreate(title);
     setTitle("");
   };
 
@@ -83,7 +108,7 @@ const TodoCreate = ({ onCreate }) => {
 
 type TodoListProps = {
   todos: Todo[];
-  onToggleTodo: (todoId: TodoId) => void;
+  onToggleTodo: (todo: Todo) => void;
   onDeleteTodo: (todoId: TodoId) => void;
 };
 
@@ -94,8 +119,8 @@ const TodoList = ({ todos, onToggleTodo, onDeleteTodo }: TodoListProps) => {
         <TodoItem
           key={todo.id}
           todo={todo}
-          onToggleTodo={onToggleTodo}
-          onDeleteTodo={onDeleteTodo}
+          onToggleTodo={() => onToggleTodo(todo)}
+          onDeleteTodo={() => onDeleteTodo(todo.id)}
         />
       ))}
     </ul>
@@ -109,6 +134,7 @@ type TodoItemProps = {
 };
 
 const TodoItem = ({ todo, onToggleTodo, onDeleteTodo }: TodoItemProps) => {
+  console.log(todo);
   return (
     <li>
       <div className="text">
