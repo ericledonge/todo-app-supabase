@@ -3,23 +3,24 @@ import { useState, useEffect } from "react";
 import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { TodosScreen } from "./screens/todos.screen.tsx";
-import { supabase } from "./api/supabase.ts";
+import { apiClient } from "./api/api-client.ts";
+import { Session } from "@supabase/supabase-js";
 
 export default function App() {
-  const [session, setSession] = useState(null);
+  const [session, setSession] = useState<Session | null>(null);
 
   const handleLogoutClick = async () => {
-    await supabase.auth.signOut();
+    await apiClient.auth.signOut();
   };
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    apiClient.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
     });
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = apiClient.auth.onAuthStateChange((_event, session) => {
       setSession(session);
     });
 
@@ -32,7 +33,7 @@ export default function App() {
         <div className="card">
           <h1 className="app-title">Todo App</h1>
           <Auth
-            supabaseClient={supabase}
+            supabaseClient={apiClient}
             appearance={{ theme: ThemeSupa }}
             providers={[]}
             theme="dark"
