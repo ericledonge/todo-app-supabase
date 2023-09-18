@@ -1,5 +1,7 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useState } from "react";
 import { supabase } from "../api/supabase.ts";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { queryClient } from "../api/query-client.ts";
 
 type TodoId = number;
 
@@ -9,81 +11,47 @@ type Todo = {
   isDone: boolean;
 };
 
+const fetchTodosFn = async () => {
+  const response = await supabase.from("todo").select("*");
+  return response.data;
+};
+
+const createTodoFn = async (title: string) =>
+  await supabase.from("todo").insert([{ title }]).select().single();
+
+const toggleTodoFn = async (todoId: TodoId) => {
+  const response = await supabase
+    .from("todo")
+    .update({ isDone: true })
+    .match({ id: todoId })
+    .select("*");
+  return response.data;
+};
+
 export const TodosScreen = () => {
-  const [todos, setTodos] = useState<Todo[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const {
+    data: todos,
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
+    queryKey: ["todos"],
+    queryFn: fetchTodosFn,
+  });
 
-  useEffect(() => {
-    setIsLoading(true);
-    getAllTodos()
-      .then((todos) => {
-        setTodos(todos);
-      })
-      .catch((error) => {
-        console.error(error);
-      })
-      .finally(() => setIsLoading(false));
-  }, []);
+  const createTodo = useMutation({
+    mutationFn: createTodoFn,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["todos"] }),
+  });
 
-  const getAllTodos = async () => {
-    let { data: todos, error } = await supabase.from("todo").select("*");
-
-    return todos;
-  };
-
-  const createTodo = async (title: string) => {
-    setIsLoading(true);
-
-    const { data, error } = await supabase
-      .from("todo")
-      .insert([{ title }])
-      .select()
-      .single();
-
-    setIsLoading(false);
-
-    if (error) {
-      console.error(error);
-      return;
-    }
-
-    if (data) {
-      setTodos((prevTodos) => [...prevTodos, data]);
-    }
-  };
-
-  const toggleTodo = (todoId: TodoId) => {
-    const newTodos = todos.map((todo) => {
-      if (todo.id === todoId) {
-        return {
-          ...todo,
-          isDone: !todo.isDone,
-        };
-      }
-
-      return todo;
-    });
-
-    setTodos(newTodos);
-  };
-
-  const deleteTodo = (todoId: TodoId) => {
-    const newTodos = todos.filter((todo) => todo.id !== todoId);
-
-    setTodos(newTodos);
-  };
+  if (isLoading) return <p>Loading...</p>;
+  if (isError) return <p>Error: {error?.message}</p>;
 
   return (
     <div className="todo-container">
-      {isLoading && <div>Loading...</div>}
-
       <TodoCreate onCreate={createTodo} />
 
-      <TodoList
-        todos={todos}
-        onToggleTodo={toggleTodo}
-        onDeleteTodo={deleteTodo}
-      />
+      <TodoList todos={todos} onToggleTodo={() => {}} onDeleteTodo={() => {}} />
     </div>
   );
 };
@@ -97,7 +65,7 @@ const TodoCreate = ({ onCreate }) => {
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    onCreate(title);
+    onCreate.mutate(title);
     setTitle("");
   };
 
