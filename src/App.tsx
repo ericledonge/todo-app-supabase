@@ -5,8 +5,11 @@ import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { TodosScreen } from "./screens/todos.screen.tsx";
 import { apiClient } from "./api/api-client.ts";
 import { Session } from "@supabase/supabase-js";
+import { useSetUserId } from "./store";
 
 export default function App() {
+  const setUserId = useSetUserId();
+
   const [session, setSession] = useState<Session | null>(null);
 
   const handleLogoutClick = async () => {
@@ -16,16 +19,18 @@ export default function App() {
   useEffect(() => {
     apiClient.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
+      setUserId(session?.user?.id || "");
     });
 
     const {
       data: { subscription },
     } = apiClient.auth.onAuthStateChange((_event, session) => {
       setSession(session);
+      setUserId(session?.user?.id || "");
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [setUserId]);
 
   if (!session) {
     return (
