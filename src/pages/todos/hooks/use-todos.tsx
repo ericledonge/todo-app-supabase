@@ -5,7 +5,7 @@ import {
   getAllTodosService,
   toggleTodoService,
 } from "../../../services";
-import { queryClient } from "../../../providers/query/query-client-provider.tsx";
+import { queryClient } from "../../../providers";
 
 export const useTodos = () => {
   const {
