@@ -1,14 +1,13 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-
 import {
   createTodoService,
   deleteTodoService,
   getAllTodosService,
   toggleTodoService,
-} from "../services/todos.services.ts";
-import { queryClient } from "../api/query-client.ts";
+} from "../../../services";
+import { queryClient } from "../../../providers/query/query-client-provider.tsx";
 
-export const TodosUseCase = () => {
+export const useTodos = () => {
   const {
     data: todos,
     isLoading,

@@ -1,6 +1,5 @@
-import { Todo, TodoId, Todos } from "../models/todo.model.ts";
-
-import { TodoItem } from "./TodoItem.tsx";
+import { Todo, TodoId, Todos } from "../../../../models";
+import { TodoItem } from "../todo-item";
 
 type TodoListProps = {
   todos: Todos | undefined;

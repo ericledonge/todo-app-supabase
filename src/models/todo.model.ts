@@ -8,3 +8,5 @@ export type Todo = {
 };
 
 export type Todos = Todo[];
+
+export type TodoFilter = "all" | "active" | "completed";

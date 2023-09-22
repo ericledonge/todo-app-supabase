@@ -1,4 +1,4 @@
-import { Todo, TodoId } from "../models/todo.model.ts";
+import { Todo, TodoId } from "../../../../models";
 
 type TodoItemProps = {
   todo: Todo;
