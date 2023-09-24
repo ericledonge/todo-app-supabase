@@ -1,11 +1,12 @@
-import { apiClient } from "../api/api-client.ts";
-import { Todo, TodoId, Todos } from "../models";
-import { useStore } from "../store";
+import { Todo, TodoId, Todos } from "../../models";
+import { useStore } from "../../store";
+import { apiClientProvider } from "../../providers";
+import { TodoSchemaType } from "../../schemas/todo.schema.ts";
 
 export const getAllTodosService = async (): Promise<Todos> => {
   const userId = useStore.getState().user.id;
 
-  const { data, error } = await apiClient
+  const { data, error } = await apiClientProvider
     .from("todo")
     .select("*")
     .eq("user_id", userId)
@@ -15,7 +16,7 @@ export const getAllTodosService = async (): Promise<Todos> => {
     throw error;
   }
 
-  return data?.map((todo) => ({
+  return data?.map((todo: TodoSchemaType) => ({
     id: todo.id,
     userId: todo.user_id,
     title: todo.title,
@@ -26,7 +27,7 @@ export const getAllTodosService = async (): Promise<Todos> => {
 export const createTodoService = async (title: string) => {
   const userId = useStore.getState().user.id;
 
-  return await apiClient
+  return await apiClientProvider
     .from("todo")
     .insert([{ title, user_id: userId }])
     .select()
@@ -36,7 +37,7 @@ export const createTodoService = async (title: string) => {
 export const toggleTodoService = async (todo: Todo) => {
   const userId = useStore.getState().user.id;
 
-  return await apiClient
+  return await apiClientProvider
     .from("todo")
     .update({ is_done: !todo.isDone })
     .eq("id", todo.id)
@@ -46,7 +47,7 @@ export const toggleTodoService = async (todo: Todo) => {
 export const deleteTodoService = async (todoId: TodoId) => {
   const userId = useStore.getState().user.id;
 
-  return await apiClient
+  return await apiClientProvider
     .from("todo")
     .delete()
     .eq("id", todoId)
